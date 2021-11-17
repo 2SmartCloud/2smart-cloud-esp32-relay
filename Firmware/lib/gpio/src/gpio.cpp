@@ -1,16 +1,11 @@
 #include "gpio.h"
 
-#include "relayMqtt.h"
-
-#define NOISE_FILTER 300
-
-bool _ledState = false;
 uint64_t lastClickButton = 0;
-hw_timer_t* timer = NULL;
+hw_timer_t* timer = nullptr;
 
 void IRAM_ATTR onTimer() {
     if (!digitalRead(ERASE_FLASH)) {
-        eraseFlag = true;
+        erase_flag = true;
     } else {
         timerAlarmDisable(timer);
     }
@@ -23,22 +18,7 @@ void IRAM_ATTR eraseInterrupt() {
     timerAlarmEnable(timer);
 }
 
-void IRAM_ATTR buttonInterrupt() {
-    if (!digitalRead(BUTTON) && millis() - lastClickButton > NOISE_FILTER) {
-        _ledState = !_ledState;
-        digitalWrite(LED, _ledState);
-        lastClickButton = millis();
-        newRelayMqttData = true;
-    }
-}
-
 void setGpios() {
     pinMode(ERASE_FLASH, INPUT_PULLUP);
     attachInterrupt(ERASE_FLASH, eraseInterrupt, FALLING);
-    pinMode(LED_STATUS, OUTPUT);
-    digitalWrite(LED_STATUS, LOW);
-    pinMode(BUTTON, INPUT_PULLUP);
-    attachInterrupt(BUTTON, buttonInterrupt, FALLING);
-    pinMode(LED, OUTPUT);
-    digitalWrite(LED, _ledState);
 }

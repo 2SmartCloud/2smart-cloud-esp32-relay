@@ -1,114 +1,132 @@
 #include "main.h"
 
-#include "autoUpd.h"
-#include "customWifi.h"
-#include "fileSystem.h"
+#include "file_system/src/file_system.h"
 #include "gpio.h"
-#include "mqtt.h"
-#include "notifications.h"
-#include "ntpTime.h"
-#include "relayMqtt.h"
-#include "webServer.h"
+#include "homie.h"
+#include "property/relay_state.h"
+#include "web_server.h"
+#include "wifi_ap/src/wifi_ap.h"
+#include "wifi_client/src/wifi_client.h"
+
+MqttClient *mqtt_client = new MqttClient();
+Homie homie(mqtt_client);
+Notifier notifier(mqtt_client);
+Device device(&homie);
+WebServer web_server(&device);
+NtpTimeClient *time_client = new NtpTimeClient();
+
+WifiClient wifi_client;
 
 void setup() {
     Serial.begin(115200);
     setGpios();
-    if (!initFiles() || !loadConfig()) {
+    if (!InitFiles() || !LoadConfig()) {
         delay(5000);
         ESP.restart();
     }
-    if (!loadFwSettings()) {
-        fwSettings.version = deviceVersion.toInt();
-        newFwSettings = true;
+
+    String mac = WiFi.macAddress().c_str();
+    if (device_id.length() <= 1) {
+        String bufferMacAddr = WiFi.macAddress();
+        bufferMacAddr.toLowerCase();
+        bufferMacAddr.replace(":", "-");
+        device_id = bufferMacAddr;
     }
-    if (deviceId.length() <= 1) {
-        mac = WiFi.macAddress();
-        mac.toLowerCase();
-        mac.replace(":", "-");
-        deviceId = mac;
+    String ip_addr = WiFi.localIP().toString();
+
+    // ---------------------------------------------- Homie convention init
+    AutoUpdateFw *firmware = new AutoUpdateFw("Firmware", "firmware", &device);                   // (name, id,device)
+    Notifications *notifications = new Notifications("Notifications", "notifications", &device);  // (name,id, device)
+    Node *relay = new Node("Relay", "relay", &device);                                            // (name, id,device)
+
+    Property *update_status = new Property("update status", "updatestate", firmware, SENSOR, false, false, "string");
+    Property *update_button = new Property("update button", "update", firmware, SENSOR, true, false, "boolean");
+    Property *update_time = new Property("update time", "updatetime", firmware, SENSOR, true, true, "string");
+    Property *auto_update = new Property("autoUpdate", "autoupdate", firmware, SENSOR, true, true, "boolean");
+    Property *fw_version = new Property("version", "version", firmware, SENSOR, false, true, "integer");
+    // ------------- notification`s properties
+    Property *system_notification =
+        new Property("System Notifications", "system", notifications, SENSOR, true, true, "boolean");
+    Property *update_notification =
+        new Property("Update Notifications", "update", notifications, SENSOR, true, true, "boolean");
+
+    RelayState *relay_state = new RelayState("State", "state", relay, SENSOR, true, true, "boolean");
+
+    DeviceData device_data{device_name, device_version, product_id.c_str(), ip_addr.c_str(), "esp32",
+                           mac.c_str(), "ready",        device_id.c_str()};
+    notifier.SetUserHash(person_id);
+
+    device.SetCredentials(device_data);
+    device.SetNotifier(&notifier);
+
+    Property *dev_ip = new Property("ipw", "ipw", &device, TELEMETRY, false, true, "string");
+    device.AddProperty(dev_ip);
+
+    firmware->AddProperty(fw_version);
+    firmware->AddProperty(update_status);
+    firmware->AddProperty(update_button);
+    firmware->AddProperty(update_time);
+    firmware->AddProperty(auto_update);
+    firmware->SetTimeClient(time_client);
+    device.AddNode(firmware);
+
+    notifications->AddProperty(system_notification);
+    notifications->AddProperty(update_notification);
+    device.AddNode(notifications);
+
+    relay->AddProperty(relay_state);
+    device.AddNode(relay);
+
+    /* -------------------- Start init your nodes and properties --------------------*/
+
+    /* -------------------- End init your nodes and properties --------------------*/
+
+    homie.SetDevice(&device);
+
+    WifiAp wifiAP;
+    if (ssid_name == "Wifi_Name" || ssid_name == "") {
+        wifiAP.Start(device_name);
+        web_server.Init();
     }
-    uint32_t last_blink_AP = millis();
-    if (ssidName == "Wifi_Name" || ssidName == "") {
-        startWifiAp();
-        setupWebServer();
+    while (ssid_name == "Wifi_Name" || ssid_name == "") {
+        // Handling buttons and offline logic
+        device.HandleCurrentState();
+        wifiAP.Blink();
     }
-    while (ssidName == "Wifi_Name" || ssidName == "") {
-        if (millis() - last_blink_AP > BLINKING_TIME_AP_MODE) {
-            Serial.print("/");
-            digitalWrite(LED_STATUS, !digitalRead(LED_STATUS));
-            last_blink_AP = millis();
+    wifi_client.SetCredentials(ssid_name, ssid_password);
+    while (!wifi_client.Connect()) {
+        // Handling buttons and offline logic
+        device.HandleCurrentState();
+        if (erase_flag) {
+            EraseFlash();
         }
     }
-    while (!wifiInit()) {
-        if (eraseFlag) {
-            eraseFlash();
-        }
-    }
-    initNtp();
-    setupWebServer();
-    Serial.print("MAC: ");
-    mac = WiFi.macAddress();
-    Serial.println(mac);
+    time_client->Init();
+    web_server.Init();
+
+    ip_addr = WiFi.localIP().toString();
     Serial.print("IP: ");
-    localIp = WiFi.localIP().toString();
-    Serial.println(localIp);
-    if (initMqtt(handleMessage)) {  // MQTT initialization
-        initNodes();
+    Serial.println(ip_addr);
+
+    while (!homie.Init(person_id, host, broker_port, token, HandleMessage)) {
+        device.HandleCurrentState();
     }
+    dev_ip->SetValue(ip_addr);
+
+    // ---------------------------------------------- Homie convention end
 }
 
 void loop() {
-    if (needReboot) {
-        ESP.restart();
-    }
+    wifi_client.Connect();
 
-    mqttLoop();
-    if (millis() - lastMillisHeartbit > HEARTBIT_DELAY * 1000) {
-        if (wifiInit()) {
-            sendHeartbit();
-            lastMillisHeartbit = millis();
-        }
-    }
-    if (reconnectMqtt && (millis() - reconnectMqttTime > DELAY_FOR_RECOONECT_MQTT)) {
-        reconnect();
-    }
-    if (newRelayMqttData && updateRelayState(notifySettings.system)) newRelayMqttData = false;
+    homie.HandleCurrentState();  // mqttLoop();
 
-    if (eraseFlag) {
-        eraseFlash();
+    if (erase_flag) {
+        EraseFlash();
     }
-    checkFirmware(deviceVersion.toInt(), notifySettings.update);
-
-    if (mqttReconnected && initNodes()) mqttReconnected = false;
 }
 
-bool initNodes() {
-    return sendRelaySettings() && sendRelayParams() && subscribeRelayMqtt() && sendFwSettings() && sendFwParams() &&
-           subscribeFwMqtt() && initNotify();
-
-    // If there are a lot of devices, then when the broker restarts, there will be many republish of their topics
-}
-
-void handleMessage(char *topic, byte *payload, unsigned int length) {
-    uint32_t time = millis();
-    if (strstr(topic, "relay")) {
-        if (handleRelayMessage(topic, payload, length)) {
-            Serial.printf("handle time %lu\r\n", millis() - time);
-            return;
-        }
-    }
-    if (strstr(topic, "firmware")) {
-        if (handleFwMessage(topic, payload, length)) {
-            Serial.printf("handle time %lu\r\n", millis() - time);
-            return;
-        }
-    }
-    if (strstr(topic, "notifications")) {
-        if (handleNotifyMessage(topic, payload, length)) {
-            Serial.printf("handle time %lu\r\n", millis() - time);
-            return;
-        }
-    }
-
-    Serial.printf("handle time %lu\r\n", millis() - time);
+void HandleMessage(char *topic, byte *payload, unsigned int length) {
+    Serial.println("mess hendled");
+    homie.HandleMessage(String(topic), payload, length);
 }

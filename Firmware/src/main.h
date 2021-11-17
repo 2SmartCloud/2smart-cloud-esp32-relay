@@ -1,33 +1,23 @@
 #pragma once
 #include <Arduino.h>
 
-// ----------------------------------------------------------Variables--------------------
-uint32_t lastMillisHeartbit = 0;
-bool eraseFlag = false;
-bool needReboot = false;
-// ---------------------------------------------------------Constants----------------
-const uint16_t BLINKING_TIME_AP_MODE = 1000;  // once in N msec
-const uint8_t HEARTBIT_DELAY = 9;             // sec
 // ----------------------------------------------------------HTTP-----------
-String ssidName = "Wifi_Name";  // WiFi name
-String ssidPassword = "";       // WiFi password
-String personMail = "";
-String personId = "";
+String ssid_name = "Wifi_Name";  // WiFi name
+String ssid_password = "";       // WiFi password
+String person_mail = "";
+String person_id = "";
 String token = "";
 String host = "cloud.2smart.com";
-String brPort = "1883";
-String webAuthPass = "";
-const char *http_username = "admin";
+String broker_port = "1883";
+String web_auth_password = "";
+const char* http_username = "admin";
 // -------------------------------------------------------Production settings
-String sandboxLogin = "";
-String deviceId = "";  // DeviceID/ MAC:adress
-String deviceName = "2Smart Relay";
-String firmwareName = "1625479282444746";  // will be changed
-String productId = "1625479282444746";     // will be changed
-String deviceVersion = "3";
+String device_id = "";                   // DeviceID/ MAC:adress
+String product_id = "1625479282444746";  // production id
 // -------------------------------------------------------MQTT variables
-String localIp = "";
-String mac = "";
 
-bool initNodes();
-void handleMessage(char *topic, byte *payload, unsigned int length);
+const char* device_name = "2Smart Relay";
+const char* device_version = "4";
+const char* firmware_name = "1625479282444746";
+
+void HandleMessage(char* topic, byte* payload, unsigned int length);
