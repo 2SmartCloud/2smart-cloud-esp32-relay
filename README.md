@@ -14,7 +14,7 @@ In addition to the control capabilities via a mobile application, the device has
 
 Materials for printing your own boards, accessories for the device, and 3d model can be found in the corresponding folders of this repository. 
 
-The device firmware is developed based on the public [2Smart Cloud SDK](https://github.com/2SmartCloud/2smart-cloud-esp32-boilerplate) for ESP32.
+The device firmware is developed based on the public [2Smart Cloud SDK](https://github.com/2SmartCloud/2smart-cloud-cpp-sdk) for ESP32.
 
 ### Connecting to the mobile application
 After installing the firmware on the device, you need to install the mobile application [2Smart Cloud](https://2smart.com) and register. Then find the 2Smart Relay in the device market and follow the connection instructions. 
@@ -66,6 +66,14 @@ If you want just build
 If you have error "can't open device "/dev/ttyUSB0": Permission denied" follow Link https://qna.habr.com/q/526674
 
 CLI guide https://docs.platformio.org/en/latest/core/userguide/index.html
+
+## Factory reset
+To reset connected device press the power button for 10 seconds until led starts blynking. 
+
+## Custom firmware
+
+Fill free to fork this firmware and create you own products with custom functionality.
+Detailed instruction you could find in our [blog](https://2smart.com/blog/tpost/ebvsii6y21-how-to-write-firmware-for-an-iot-device).
 
 
 ## To Do 
