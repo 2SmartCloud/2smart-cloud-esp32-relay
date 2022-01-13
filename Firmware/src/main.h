@@ -17,7 +17,7 @@ String product_id = "1625479282444746";  // production id
 // -------------------------------------------------------MQTT variables
 
 const char* device_name = "2Smart Relay";
-const char* device_version = "4";
+const char* device_version = "5";
 const char* firmware_name = "1625479282444746";
 
 void HandleMessage(char* topic, byte* payload, unsigned int length);

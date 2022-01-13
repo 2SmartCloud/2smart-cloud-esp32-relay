@@ -68,11 +68,11 @@ If you have error "can't open device "/dev/ttyUSB0": Permission denied" follow L
 CLI guide https://docs.platformio.org/en/latest/core/userguide/index.html
 
 ## Factory reset
-To reset connected device press the power button for 10 seconds until led starts blinking. 
+To reset connected device press the power button for 10 seconds until led starts blynking. 
 
 ## Custom firmware
 
-Feel free to fork this firmware and create you own products with custom functionality.
+Fill free to fork this firmware and create you own products with custom functionality.
 Detailed instruction you could find in our [blog](https://2smart.com/blog/tpost/ebvsii6y21-how-to-write-firmware-for-an-iot-device).
 
 
