@@ -192,8 +192,7 @@ void WebServer::SetupWebServer() {
     server_->on("/setcredentials", HTTP_GET, [this](AsyncWebServerRequest *request) {
         OnRequestWithAuth(request, [this](AsyncWebServerRequest *request) {
             if (!request->hasParam("mail") || !request->hasParam("token") || !request->hasParam("hostname") ||
-                !request->hasParam("brokerPort") || !request->hasParam("product_id") ||
-                !request->hasParam("device_id")) {
+                !request->hasParam("brokerPort") || !request->hasParam("productId") || !request->hasParam("deviceId")) {
                 request->send(400, "text/plain", "Incorrect data");
                 return;
             }
@@ -202,8 +201,8 @@ void WebServer::SetupWebServer() {
             token = request->getParam("token")->value();
             host = request->getParam("hostname")->value();
             broker_port = request->getParam("brokerPort")->value();
-            product_id = request->getParam("product_id")->value();
-            device_id = request->getParam("device_id")->value();
+            product_id = request->getParam("productId")->value();
+            device_id = request->getParam("deviceId")->value();
             person_id = Sha256(person_mail);
 
             Serial.println(person_mail);

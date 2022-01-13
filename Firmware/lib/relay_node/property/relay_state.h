@@ -20,6 +20,13 @@ class RelayState : public Property {
     void HandleSettingNewValue();
 
  private:
+    bool LoadSettings();
+
+    bool SaveSettings();
+
+    bool state_saved = false;
+
+    enum AfterRebootState { ON, OFF, LAST };
     EncButton<EB_TICK, 13> button_;
 
     const uint8_t kRelayPin = 4;

@@ -1,12 +1,10 @@
 #include "main.h"
 
-#include "file_system/src/file_system.h"
 #include "gpio.h"
 #include "homie.h"
 #include "property/relay_state.h"
+#include "property/save_state.h"
 #include "web_server.h"
-#include "wifi_ap/src/wifi_ap.h"
-#include "wifi_client/src/wifi_client.h"
 
 MqttClient *mqtt_client = new MqttClient();
 Homie homie(mqtt_client);
@@ -20,6 +18,7 @@ WifiClient wifi_client;
 void setup() {
     Serial.begin(115200);
     setGpios();
+
     if (!InitFiles() || !LoadConfig()) {
         delay(5000);
         ESP.restart();
@@ -37,7 +36,6 @@ void setup() {
     // ---------------------------------------------- Homie convention init
     AutoUpdateFw *firmware = new AutoUpdateFw("Firmware", "firmware", &device);                   // (name, id,device)
     Notifications *notifications = new Notifications("Notifications", "notifications", &device);  // (name,id, device)
-    Node *relay = new Node("Relay", "relay", &device);                                            // (name, id,device)
 
     Property *update_status = new Property("update status", "updatestate", firmware, SENSOR, false, false, "string");
     Property *update_button = new Property("update button", "update", firmware, SENSOR, true, false, "boolean");
@@ -50,34 +48,23 @@ void setup() {
     Property *update_notification =
         new Property("Update Notifications", "update", notifications, SENSOR, true, true, "boolean");
 
-    RelayState *relay_state = new RelayState("State", "state", relay, SENSOR, true, true, "boolean");
-
+    // ------------- Device
     DeviceData device_data{device_name, device_version, product_id.c_str(), ip_addr.c_str(), "esp32",
                            mac.c_str(), "ready",        device_id.c_str()};
+
     notifier.SetUserHash(person_id);
 
     device.SetCredentials(device_data);
     device.SetNotifier(&notifier);
 
     Property *dev_ip = new Property("ipw", "ipw", &device, TELEMETRY, false, true, "string");
-    device.AddProperty(dev_ip);
-
-    firmware->AddProperty(fw_version);
-    firmware->AddProperty(update_status);
-    firmware->AddProperty(update_button);
-    firmware->AddProperty(update_time);
-    firmware->AddProperty(auto_update);
-    firmware->SetTimeClient(time_client);
-    device.AddNode(firmware);
-
-    notifications->AddProperty(system_notification);
-    notifications->AddProperty(update_notification);
-    device.AddNode(notifications);
-
-    relay->AddProperty(relay_state);
-    device.AddNode(relay);
 
     /* -------------------- Start init your nodes and properties --------------------*/
+
+    Node *relay = new Node("Relay", "relay", &device);  // (name, id,device)
+    RelayState *relay_state = new RelayState("State", "state", relay, SENSOR, true, true, "boolean");
+    SaveState *after_reboot_state =
+        new SaveState("boot-state", "boot-state", relay, OPTION, true, true, "enum", "Off,On,Last");
 
     /* -------------------- End init your nodes and properties --------------------*/
 
@@ -107,15 +94,14 @@ void setup() {
     ip_addr = WiFi.localIP().toString();
     Serial.print("IP: ");
     Serial.println(ip_addr);
+    dev_ip->SetValue(ip_addr);
 
     while (!homie.Init(person_id, host, broker_port, token, HandleMessage)) {
         device.HandleCurrentState();
     }
-    dev_ip->SetValue(ip_addr);
 
     // ---------------------------------------------- Homie convention end
 }
-
 void loop() {
     wifi_client.Connect();
 
@@ -125,8 +111,6 @@ void loop() {
         EraseFlash();
     }
 }
-
 void HandleMessage(char *topic, byte *payload, unsigned int length) {
-    Serial.println("mess hendled");
     homie.HandleMessage(String(topic), payload, length);
 }
