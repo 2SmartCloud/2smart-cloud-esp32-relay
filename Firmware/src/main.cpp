@@ -105,7 +105,12 @@ void setup() {
 void loop() {
     wifi_client.Connect();
 
-    homie.HandleCurrentState();  // mqttLoop();
+    // homie requires connected wifi client
+    if (wifi_client.isConnected()) {
+        homie.HandleCurrentState();
+    } else {  // standalone mode
+        device.HandleCurrentState();
+    }
 
     if (erase_flag) {
         EraseFlash();
