@@ -31,11 +31,13 @@ After installing the firmware on the device, you need to install the mobile appl
     ```
     curl https://raw.githubusercontent.com/2SmartCloud/2smart-cloud-cpp-sdk/master/utils/bin/firmware_install.sh > firmware_install.sh
     ```
+
 2. Make script executable:
     ```
     chmod +x firmware_install.sh
     ```
 3. Have connected device to your computer.
+
 4. Build and write the firmware
     ```
     ./firmware_install.sh write -d <PORT>
@@ -48,19 +50,20 @@ After installing the firmware on the device, you need to install the mobile appl
     ```
     ./firmware_install.sh
     ```
+
 5. If everything is okay it should start in AP mode and blink once in a second.
 
 ### Using installed requirements
-1. Need have:  
+1. Need have:
     `python` (>= v3) installed. You can control it in terminal
     ```
     python --version
-    ```    
+    ```
 
     `platformio` (>= v5.1.1)
     ```
     pip install -U platformio
-    ```    
+    ```
 
 2. Have connected device to your computer.
 
@@ -92,7 +95,6 @@ After installing the firmware on the device, you need to install the mobile appl
 If you have error "can't open device "/dev/ttyUSB0": Permission denied" follow Link https://qna.habr.com/q/526674
 
 CLI guide https://docs.platformio.org/en/latest/core/userguide/index.html
-
 
 ## Factory reset
 To reset connected device press the power button for 10 seconds until led starts blynking. 
