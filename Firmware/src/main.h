@@ -31,7 +31,7 @@ const char *http_username = "admin";
 String product_id = "1625479282444746";  // product id
 String device_id = "";  // DeviceID/MAC:adress
 const char* device_name = "2Smart Relay";
-const char* device_version = "7";
+const char* device_version = "8";
 const char *firmware_name = product_id.c_str();
 // --------------------------------------------------------------------------
 
